@@ -1,18 +1,16 @@
+// Exemplo básico para acender e apagar o led integrado da placa ESP8266
 #include <Arduino.h>
 
-// put function declarations here:
-int myFunction(int, int);
-
-void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+void setup()
+{
+  pinMode(LED_BUILTIN, OUTPUT); // Inicializa o LED Bultin (soldado) na placa
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+// Inicia o loop
+void loop()
+{
+  digitalWrite(LED_BUILTIN, LOW);  // Acende o LED (Nesse caso, LOW é a tensão utilizada para acender o led, pois ele é ligado na outra ponta ao positivo da placa + resistor interno)
+  delay(1000);                     // Espera 1 segundo
+  digitalWrite(LED_BUILTIN, HIGH); // Apaga o LED jogando o nível de tensão para HIGH
+  delay(2000);                     // Espera 2 segundos
 }
