@@ -1,95 +1,43 @@
-/* Baseado no projeto de ESP32 da Wokwi, com alguns ajustes para o ESP8266
-   https://wokwi.com/projects/320964045035274834
+/*
+  Exemplo de uso do display no ESP8266 com comunicação I2C
+  Modelo Aliexpress HW-364A - Link: https://pt.aliexpress.com/item/1005006263058736.html
+  OBS: As portas SDA e SCL estão invertidas no link do produto
+  Documentação da biblioteca U8g2 - https://github.com/olikraus/u8g2/wiki/
 */
 
-#include <Arduino.h>          // Carrega biblioteca padrão Arduino
-#include <ESP8266WiFi.h>      // Carrega biblioteca do ESP8266 para conexão ao wifi
-#include <ESP8266WebServer.h> // Carrega biblioteca do ESP8266 - Mini servidor web
-#include <uri/UriBraces.h>    // Carrega biblioteca que permite passar parametros pela URI
+#include <Arduino.h>
+#include <U8g2lib.h>
+#include <Wire.h>
 
-#define WIFI_SSID "IoT-FATEC"    // Define a variável para o nome da rede sem fio onde o ESP8266 irá se conectar
-#define WIFI_PASSWORD "12345678" // Define a senha da rede sem fio
+const int SDA_PORT = 14; // Variável declarada para uso nessa placa - porta SDA
+const int SCL_PORT = 12; // Variável declarada para uso nessa placa - porta SCL
 
-ESP8266WebServer server(80); // Função que inicializa o servidor web interno da placa
+/*
+  U8g2lib Example Overview:
+    Frame Buffer Examples: clearBuffer/sendBuffer. Fast, but may not work with all Arduino boards because of RAM consumption.
+    Page Buffer Examples: firstPage/nextPage. Less RAM usage, should work with all Arduino boards.
+    U8x8 Text Only Example: No RAM usage, direct communication with display controller. No graphics, 8x8 Text only.
+*/
 
-bool ledState = false; // Cria váriavel chamada ledState que vai armazenar o estado do LED (ligado ou desligado)
+// Please UNCOMMENT one of the contructor lines below
+// U8g2 Contructor List (Frame Buffer)
+// The complete list is available here: https://github.com/olikraus/u8g2/wiki/u8g2setupcpp
+// U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/SCL, /* data=*/SDA, /* reset=*/U8X8_PIN_NONE); // All Boards without Reset of the Display
+U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, SCL_PORT, SDA_PORT, U8X8_PIN_NONE); // Display I2C emulado
 
-void sendHtml()
-{
-  String response = R"(
-    <!DOCTYPE html><html>
-      <head>
-        <title>ESP8266 - Web Server com controle de GPIO</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-          html { font-family: sans-serif; text-align: center; }
-          body { display: inline-flex; flex-direction: column; }
-          h1 { margin-bottom: 1.2em; }
-          h2 { margin: 0; }
-          div { display: grid; grid-template-columns: 1fr; grid-template-rows: auto auto; grid-auto-flow: column; grid-gap: 1em; }
-          .btn { background-color: #5B5; border: none; color: #fff; padding: 0.5em 1em;
-                 font-size: 2em; text-decoration: none }
-          .btn.Desligado { background-color: #333; }
-        </style>
-      </head>  
-      <body>
-        <h1>ESP8266 Web Server</h1>
-        <div>
-          <h2>Controle do LED Integrado</h2>
-          <a href="/toggle/1" class="btn LED_TEXT">LED_TEXT</a>
-        </div>
-      </body>
-    </html>
-  )";
-  response.replace("LED_TEXT", ledState ? "Desligado" : "Ligado");
-  server.send(200, "text/html", response);
-}
-
-// Configurar e inicializar placa IoT
 void setup(void)
 {
-  Serial.begin(115200);         // Função pra inicializar o monitor serial
-  pinMode(LED_BUILTIN, OUTPUT); // Define a GPIO do LED integrado da placa como saída
-  delay(2000);                  // Aguarda 2 segundos para inicializar o monitor serial
-  Serial.println("Iniciando o ESP8266...");
-
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);  // Função Wifi.begin - inicializar o wifi da placa IoT
-  Serial.print("Conectando no Wi-Fi: "); // Imprime no monitor serial sobre o que está acontecendo
-  Serial.println(WIFI_SSID);             // Imprime no monitor serial o nome da rede wifi onde a placa será conectada
-
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(100);        // Laço de repetição
-    Serial.print("."); // Fica preso nesse laço até se conectar na rede sem fio configurada
-  }
-  Serial.println("\nConectado ao Wi-Fi!"); // Assim que estiver conectado, escreve a mensagem no monitor serial
-
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP()); // Imprime no monitor serial o endereço IP que ele ganhou da rede sem fio
-
-  server.on("/", sendHtml);
-
-  server.on(UriBraces("/toggle/{}"), []()
-            {
-    String led = server.pathArg(0);
-
-    switch (led.toInt()) {
-      case 1:
-        ledState = !ledState;
-        digitalWrite(LED_BUILTIN, ledState);
-        Serial.printf("LED %s\n", ledState ? "desligado!" : "ligado!");
-        break;
-    }
-  
-    sendHtml(); });
-
-  server.begin();
-  Serial.println("Servidor HTTP iniciado!");
+  u8g2.begin();           // Inicializa o display
+  u8g2.enableUTF8Print(); // Habilitar a impressão UTF-8 no display
 }
 
 void loop(void)
 {
-  server.handleClient();
-  delay(10);
+  u8g2.clearBuffer();                         // Clear the internal memory
+  u8g2.setFont(u8g2_font_sirclivethebold_tr); // Choose a suitable font
+  u8g2.drawStr(0, 8, "Hello World!");         // Write something to the internal memory
+  u8g2.drawStr(0, 24, "Bem vindo a");         // Write something to the internal memory
+  u8g2.drawStr(20, 36, "FATEC Jahu");         // Escrevendo linha 3
+  u8g2.sendBuffer();                          // Transfer internal memory to the display
+  delay(10000);
 }
